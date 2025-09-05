@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Precios KANA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #2c3e50; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all hover:scale-105 duration-300 relative">
+        <button id="showInstructionsBtn" class="absolute top-4 right-4 p-2 rounded-full bg-blue-800 text-white hover:bg-blue-900 transition duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-.897.557l-1 2A1 1 0 009 8h2a1 1 0 00.897-1.443l-1-2A1 1 0 0010 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+        </button>
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
+            Calculadora Precios Kana
+        </h1>
+
+        <div class="space-y-6">
+            
+            <div class="flex flex-col">
+                <label for="precioOriginal" class="text-xs font-medium text-gray-700 mb-2">
+                    Precio Original
+                </label>
+                <input
+                    type="number"
+                    id="precioOriginal"
+                    placeholder="Ej. 100"
+                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+            </div>
+
+            <div class="flex flex-col">
+                <label for="porcentajeDescuento" class="text-xs font-medium text-gray-700 mb-2">
+                    Porcentaje de Descuento (%)
+                </label>
+                <input
+                    type="number"
+                    id="porcentajeDescuento"
+                    placeholder="Ej. 19"
+                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+            </div>
+            
+            <div class="flex flex-col">
+                <label for="precioFinal" class="text-xs font-medium text-gray-700 mb-2">
+                    Precio Final
+                </label>
+                <div id="precioFinal"
+                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center"
+                >
+                    0,00
+                </div>
+            </div>
+
+            <div class="flex flex-col">
+                <label for="precioDolar" class="text-xs font-medium text-gray-700 mb-2">
+                    Precio del Dólar
+                </label>
+                <input
+                    type="number"
+                    id="precioDolar"
+                    placeholder="Ej. 1000"
+                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+            </div>
+
+            <div class="flex justify-center mt-2">
+                <a 
+                    href="https://www.bcv.org.ve/estadisticas/indicadores-de-la-region-zuliana-precios" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="w-full py-2 px-4 text-center text-white font-semibold rounded-lg shadow-md bg-blue-800 hover:bg-blue-900 transition duration-300 transform hover:scale-105"
+                >
+                    Ver Tasa Oficial del Dólar
+                </a>
+            </div>
+
+            <div class="flex flex-col">
+                <label for="precioFinalDolarDisplay" class="text-xs font-medium text-gray-700 mb-2">
+                    Precio Final en Dólares
+                </label>
+                <div id="precioFinalDolarDisplay"
+                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center"
+                >
+                    0,00000
+                </div>
+            </div>
+            
+            <div class="flex justify-center mt-6">
+                <a 
+                    href="https://kana.imk.cecosesola.coop/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="w-full py-3 px-6 text-center text-white font-bold rounded-lg shadow-lg bg-gray-800 hover:bg-gray-900 transition duration-300 transform hover:scale-105"
+                >
+                    KANA PRECIOS
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="instructionsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-4">Instrucciones de uso</h2>
+            <ol class="list-decimal list-inside text-sm text-gray-700 space-y-2">
+                <li>Ingresa el **Precio Original** del producto en bolívares en el primer campo.</li>
+                <li>Ingresa el **Porcentaje de Descuento (%)** que deseas aplicar.</li>
+                <li>Ingresa la **Tasa del Dólar** actual.</li>
+                <li>El **Precio Final** en bolívares y dólares se calculará automáticamente a medida que ingresas los valores.</li>
+            </ol>
+            <div class="flex justify-end mt-6">
+                <button id="closeModalBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-300">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const precioOriginalInput = document.getElementById('precioOriginal');
+        const porcentajeDescuentoInput = document.getElementById('porcentajeDescuento');
+        const precioDolarInput = document.getElementById('precioDolar'); 
+        const precioFinalDisplay = document.getElementById('precioFinal');
+        const precioFinalDolarDisplay = document.getElementById('precioFinalDolarDisplay');
+
+        const showInstructionsBtn = document.getElementById('showInstructionsBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const instructionsModal = document.getElementById('instructionsModal');
+
+        precioOriginalInput.addEventListener('input', calcular);
+        porcentajeDescuentoInput.addEventListener('input', calcular);
+        precioDolarInput.addEventListener('input', calcular);
+
+        showInstructionsBtn.addEventListener('click', () => {
+            instructionsModal.classList.add('active');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            instructionsModal.classList.remove('active');
+        });
+
+        instructionsModal.addEventListener('click', (e) => {
+            if (e.target === instructionsModal) {
+                instructionsModal.classList.remove('active');
+            }
+        });
+
+
+        function calcular() {
+            const precioOriginal = parseFloat(precioOriginalInput.value) || 0;
+            const porcentaje = parseFloat(porcentajeDescuentoInput.value) || 0;
+            const precioDolar = parseFloat(precioDolarInput.value) || 0;
+
+            const porcentajeValidado = Math.max(0, porcentaje);
+
+            const montoDescuento = (precioOriginal * porcentajeValidado) / 100;
+
+            const precioFinal = precioOriginal - montoDescuento;
+
+            let precioFinalDolar = 0;
+            if (precioDolar > 0) {
+                precioFinalDolar = precioFinal / precioDolar;
+            }
+
+            const formatOptionsBs = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+            precioFinalDisplay.textContent = precioFinal.toLocaleString('es-ES', formatOptionsBs);
+
+            const formatOptionsUsd = { minimumFractionDigits: 2, maximumFractionDigits: 5 };
+            precioFinalDolarDisplay.textContent = precioFinalDolar.toLocaleString('es-ES', formatOptionsUsd);
+        }
+
+        calcular();
+    </script>
+</body>
+</html>
