@@ -4,17 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora Precios KANA</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #2c3e50; 
+            background-color: #0a0a0a; /* Fondo negro */
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            overflow: hidden; /* Ocultar el desbordamiento del canvas */
+        }
+
+        /* Estilo para el canvas del fondo de partículas */
+        #backgroundCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
             height: 100vh;
+            z-index: -1;
         }
 
         .modal-overlay {
@@ -30,6 +44,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 100;
         }
 
         .modal-overlay.active {
@@ -39,11 +54,11 @@
 
         .modal-content {
             background-color: #fff;
-            padding: 24px;
+            padding: 2rem;
             border-radius: 12px;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             transform: translateY(-20px);
             transition: transform 0.3s ease;
         }
@@ -51,21 +66,50 @@
         .modal-overlay.active .modal-content {
             transform: translateY(0);
         }
+
+        /* Estilo para el mensaje de copia */
+        .copy-message {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            padding: 0.5rem 1rem;
+            background-color: #16a34a;
+            color: white;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .copy-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
-<body class="p-4 sm:p-8 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all hover:scale-105 duration-300 relative">
-        <button id="showInstructionsBtn" class="absolute top-4 right-4 p-2 rounded-full bg-blue-800 text-white hover:bg-blue-900 transition duration-300">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <!-- Particle Background Canvas -->
+    <canvas id="backgroundCanvas"></canvas>
+
+    <!-- Main Calculator Card -->
+    <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all duration-300 hover:shadow-2xl relative z-10">
+        <!-- Info Button -->
+        <button id="showInstructionsBtn" class="absolute top-4 right-4 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-.897.557l-1 2A1 1 0 009 8h2a1 1 0 00.897-1.443l-1-2A1 1 0 0010 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
             </svg>
         </button>
-        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
-            Calculadora Precios Kana
+        
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-8">
+            Calculadora Precios KANA
         </h1>
 
+        <!-- Input and Output Fields -->
         <div class="space-y-6">
             
+            <!-- Original Price Input -->
             <div class="flex flex-col">
                 <label for="precioOriginal" class="text-xs font-medium text-gray-700 mb-2">
                     Precio Original
@@ -78,6 +122,7 @@
                 />
             </div>
 
+            <!-- Discount Percentage Input -->
             <div class="flex flex-col">
                 <label for="porcentajeDescuento" class="text-xs font-medium text-gray-700 mb-2">
                     Porcentaje de Descuento (%)
@@ -90,17 +135,27 @@
                 />
             </div>
             
-            <div class="flex flex-col">
+            <!-- Final Price Display (Bolívares) -->
+            <div class="flex flex-col relative">
                 <label for="precioFinal" class="text-xs font-medium text-gray-700 mb-2">
-                    Precio Final
+                    Precio Final (Bs)
                 </label>
                 <div id="precioFinal"
-                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center"
+                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
                 >
                     0,00
                 </div>
+                <!-- Copy Button for Final Price -->
+                <button onclick="copyToClipboard('precioFinal')" class="absolute right-4 top-1/2 mt-2 transform -translate-y-1/2 text-gray-500 hover:text-blue-500 transition duration-200" title="Copiar al portapapeles">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 013 3v11a3 3 0 01-3 3H6a3 3 0 01-3-3V5a3 3 0 013-3h2zm0 1a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" />
+                    </svg>
+                </button>
+                <span id="copyMsgBs" class="copy-message">Copiado!</span>
             </div>
 
+            <!-- Dollar Price Input -->
             <div class="flex flex-col">
                 <label for="precioDolar" class="text-xs font-medium text-gray-700 mb-2">
                     Precio del Dólar
@@ -113,41 +168,58 @@
                 />
             </div>
 
+            <!-- BCV Link Button -->
             <div class="flex justify-center mt-2">
                 <a 
                     href="https://www.bcv.org.ve/estadisticas/indicadores-de-la-region-zuliana-precios" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    class="w-full py-2 px-4 text-center text-white font-semibold rounded-lg shadow-md bg-blue-800 hover:bg-blue-900 transition duration-300 transform hover:scale-105"
+                    class="w-full py-3 px-4 text-center text-white font-semibold rounded-lg shadow-md bg-blue-800 hover:bg-blue-900 transition duration-300 transform hover:scale-105"
                 >
                     Ver Tasa Oficial del Dólar
                 </a>
             </div>
 
-            <div class="flex flex-col">
+            <!-- Final Price Display (Dollars) -->
+            <div class="flex flex-col relative">
                 <label for="precioFinalDolarDisplay" class="text-xs font-medium text-gray-700 mb-2">
-                    Precio Final en Dólares
+                    Precio Final en Dólares ($)
                 </label>
                 <div id="precioFinalDolarDisplay"
-                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center"
+                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
                 >
                     0,00000
                 </div>
+                <!-- Copy Button for Dollar Price -->
+                <button onclick="copyToClipboard('precioFinalDolarDisplay')" class="absolute right-4 top-1/2 mt-2 transform -translate-y-1/2 text-gray-500 hover:text-blue-500 transition duration-200" title="Copiar al portapapeles">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 013 3v11a3 3 0 01-3 3H6a3 3 0 01-3-3V5a3 3 0 013-3h2zm0 1a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" />
+                    </svg>
+                </button>
+                <span id="copyMsgUsd" class="copy-message">Copiado!</span>
             </div>
             
+            <!-- KANA PRECIOS Link Button -->
             <div class="flex justify-center mt-6">
                 <a 
                     href="https://kana.imk.cecosesola.coop/" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    class="w-full py-3 px-6 text-center text-white font-bold rounded-lg shadow-lg bg-gray-800 hover:bg-gray-900 transition duration-300 transform hover:scale-105"
+                    class="w-full py-3 px-6 text-center text-white font-bold rounded-lg shadow-lg bg-gray-800 hover:bg-gray-900 transition duration-300 transform hover:scale-105 flex items-center justify-center"
                 >
+                    <!-- Icono para el botón de KANA PRECIOS -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 14a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd" />
+                    </svg>
                     KANA PRECIOS
                 </a>
             </div>
         </div>
     </div>
 
+    <!-- Modal Overlay and Content -->
     <div id="instructionsModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="text-xl font-bold mb-4">Instrucciones de uso</h2>
@@ -156,6 +228,7 @@
                 <li>Ingresa el **Porcentaje de Descuento (%)** que deseas aplicar.</li>
                 <li>Ingresa la **Tasa del Dólar** actual.</li>
                 <li>El **Precio Final** en bolívares y dólares se calculará automáticamente a medida que ingresas los valores.</li>
+                <li>Haz clic en los valores del precio final o en los íconos de copia para copiar el resultado al portapapeles.</li>
             </ol>
             <div class="flex justify-end mt-6">
                 <button id="closeModalBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-300">
@@ -165,6 +238,7 @@
         </div>
     </div>
 
+    <!-- JavaScript for logic and interactions -->
     <script>
         const precioOriginalInput = document.getElementById('precioOriginal');
         const porcentajeDescuentoInput = document.getElementById('porcentajeDescuento');
@@ -176,10 +250,16 @@
         const closeModalBtn = document.getElementById('closeModalBtn');
         const instructionsModal = document.getElementById('instructionsModal');
 
+        // Listen for input changes to recalculate prices
         precioOriginalInput.addEventListener('input', calcular);
         porcentajeDescuentoInput.addEventListener('input', calcular);
         precioDolarInput.addEventListener('input', calcular);
 
+        // Add event listeners for copying to clipboard
+        precioFinalDisplay.addEventListener('click', () => copyToClipboard('precioFinal'));
+        precioFinalDolarDisplay.addEventListener('click', () => copyToClipboard('precioFinalDolarDisplay'));
+
+        // Modal functionality
         showInstructionsBtn.addEventListener('click', () => {
             instructionsModal.classList.add('active');
         });
@@ -194,7 +274,7 @@
             }
         });
 
-
+        // Main calculation function
         function calcular() {
             const precioOriginal = parseFloat(precioOriginalInput.value) || 0;
             const porcentaje = parseFloat(porcentajeDescuentoInput.value) || 0;
@@ -211,6 +291,7 @@
                 precioFinalDolar = precioFinal / precioDolar;
             }
 
+            // Format numbers for display
             const formatOptionsBs = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
             precioFinalDisplay.textContent = precioFinal.toLocaleString('es-ES', formatOptionsBs);
 
@@ -218,7 +299,124 @@
             precioFinalDolarDisplay.textContent = precioFinalDolar.toLocaleString('es-ES', formatOptionsUsd);
         }
 
-        calcular();
+        // Copy to clipboard function
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const textToCopy = element.textContent;
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Show confirmation message
+            const copyMsgId = elementId === 'precioFinal' ? 'copyMsgBs' : 'copyMsgUsd';
+            const copyMsg = document.getElementById(copyMsgId);
+            copyMsg.classList.add('show');
+            setTimeout(() => {
+                copyMsg.classList.remove('show');
+            }, 1500);
+        }
+
+        // Particle background logic
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        // Particle Class
+        class Particle {
+            constructor(x, y, radius, color, velocity) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.velocity = velocity;
+                this.opacity = 1;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+                ctx.fill();
+            }
+
+            update() {
+                // Actualizar la posición de la partícula
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+
+                // Rebotar en los bordes
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.velocity.x = -this.velocity.x;
+                }
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.velocity.y = -this.velocity.y;
+                }
+                this.draw();
+            }
+        }
+
+        // Resize the canvas to fit the window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            particles = []; // Recrear las partículas para que se adapten al nuevo tamaño
+            const numParticles = 80;
+            for (let i = 0; i < numParticles; i++) {
+                const radius = Math.random() * 2 + 1;
+                const x = Math.random() * (canvas.width - radius * 2) + radius;
+                const y = Math.random() * (canvas.height - radius * 2) + radius;
+                const velocity = { 
+                    x: (Math.random() - 0.5) * 0.5, 
+                    y: (Math.random() - 0.5) * 0.5 
+                };
+                const color = '190, 240, 255'; // Color celeste
+                particles.push(new Particle(x, y, radius, color, velocity));
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            // Dibujar un rectángulo semi-transparente para crear un efecto de rastros
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dibujar y actualizar partículas
+            for (const particle of particles) {
+                particle.update();
+            }
+
+            // Conectar partículas cercanas
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    const distance = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(190, 240, 255, ${1 - distance / 100})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Initialize on window load and resize
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            animate();
+            calcular();
+        });
+        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
