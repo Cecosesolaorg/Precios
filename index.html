@@ -12,16 +12,9 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0a0a0a; /* Fondo negro */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
-            overflow: hidden; /* Ocultar el desbordamiento del canvas */
         }
 
-        /* Estilo para el canvas del fondo de partículas */
+        /* Styles for the particle background canvas */
         #backgroundCanvas {
             position: fixed;
             top: 0;
@@ -53,12 +46,6 @@
         }
 
         .modal-content {
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             transform: translateY(-20px);
             transition: transform 0.3s ease;
         }
@@ -67,7 +54,7 @@
             transform: translateY(0);
         }
 
-        /* Estilo para el mensaje de copia */
+        /* Style for the copy message */
         .copy-message {
             position: absolute;
             bottom: 100%;
@@ -89,12 +76,19 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-[#0a0a0a] flex items-center justify-center min-h-screen p-4 overflow-hidden">
+    <!-- Loading Screen with Black Circle -->
+    <div id="loadingScreen" class="fixed inset-0 bg-[#0a0a0a] z-[200] flex items-center justify-center transition-opacity duration-700">
+        <div class="w-40 h-40 rounded-full bg-black flex items-center justify-center animate-pulse">
+            <p class="text-white text-xl font-bold">Espere un momento</p>
+        </div>
+    </div>
+
     <!-- Particle Background Canvas -->
     <canvas id="backgroundCanvas"></canvas>
 
     <!-- Main Calculator Card -->
-    <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all duration-300 hover:shadow-2xl relative z-10">
+    <div id="mainCalculator" class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all duration-300 hover:shadow-2xl relative z-10 opacity-0">
         <!-- Info Button -->
         <button id="showInstructionsBtn" class="absolute top-4 right-4 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -102,8 +96,8 @@
             </svg>
         </button>
         
-        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-8">
-            Calculadora Precios KANA
+        <h1 id="pageTitle" class="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-8">
+            Calculadora Precios KANA cecosesola
         </h1>
 
         <!-- Input and Output Fields -->
@@ -141,7 +135,7 @@
                     Precio Final (Bs)
                 </label>
                 <div id="precioFinal"
-                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
+                    class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
                 >
                     0,00
                 </div>
@@ -166,18 +160,16 @@
                     placeholder="Ej. 1000"
                     class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
                 />
-            </div>
-
-            <!-- BCV Link Button -->
-            <div class="flex justify-center mt-2">
-                <a 
-                    href="https://www.bcv.org.ve/estadisticas/indicadores-de-la-region-zuliana-precios" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    class="w-full py-3 px-4 text-center text-white font-semibold rounded-lg shadow-md bg-blue-800 hover:bg-blue-900 transition duration-300 transform hover:scale-105"
-                >
-                    Ver Tasa Oficial del Dólar
-                </a>
+                <div class="flex justify-center mt-2">
+                    <!-- New Button to update the dollar rate -->
+                    <button id="updateRateBtn" class="py-2 px-4 w-full text-center text-white font-semibold rounded-lg shadow-md bg-green-500 hover:bg-green-600 transition duration-300 transform hover:scale-105">
+                        Actualizar Tasa con HTML
+                    </button>
+                </div>
+                <!-- Loading message -->
+                <p id="loadingMessage" class="hidden text-xs text-center text-gray-500 mt-2">
+                    Analizando HTML...
+                </p>
             </div>
 
             <!-- Final Price Display (Dollars) -->
@@ -186,7 +178,7 @@
                     Precio Final en Dólares ($)
                 </label>
                 <div id="precioFinalDolarDisplay"
-                     class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
+                    class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
                 >
                     0,00000
                 </div>
@@ -199,7 +191,7 @@
                 </button>
                 <span id="copyMsgUsd" class="copy-message">Copiado!</span>
             </div>
-            
+
             <!-- KANA PRECIOS Link Button -->
             <div class="flex justify-center mt-6">
                 <a 
@@ -208,7 +200,7 @@
                     rel="noopener noreferrer"
                     class="w-full py-3 px-6 text-center text-white font-bold rounded-lg shadow-lg bg-gray-800 hover:bg-gray-900 transition duration-300 transform hover:scale-105 flex items-center justify-center"
                 >
-                    <!-- Icono para el botón de KANA PRECIOS -->
+                    <!-- Icon for the KANA PRECIOS button -->
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 14a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd" />
@@ -221,14 +213,14 @@
 
     <!-- Modal Overlay and Content -->
     <div id="instructionsModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content bg-white p-8 rounded-xl max-w-sm w-11/12 shadow-2xl">
             <h2 class="text-xl font-bold mb-4">Instrucciones de uso</h2>
             <ol class="list-decimal list-inside text-sm text-gray-700 space-y-2">
-                <li>Ingresa el **Precio Original** del producto en bolívares en el primer campo.</li>
-                <li>Ingresa el **Porcentaje de Descuento (%)** que deseas aplicar.</li>
-                <li>Ingresa la **Tasa del Dólar** actual.</li>
-                <li>El **Precio Final** en bolívares y dólares se calculará automáticamente a medida que ingresas los valores.</li>
-                <li>Haz clic en los valores del precio final o en los íconos de copia para copiar el resultado al portapapeles.</li>
+                <li>Ingresa el **Precio Original** del producto en bolívares.</li>
+                <li>Ingresa el **Porcentaje de Descuento (%)**.</li>
+                <li>Haz clic en **"Actualizar Tasa con HTML"** para leer el precio del dólar.</li>
+                <li>El **Precio Final** en bolívares y dólares se calculará automáticamente.</li>
+                <li>Usa los íconos de copia para copiar el resultado al portapapeles.</li>
             </ol>
             <div class="flex justify-end mt-6">
                 <button id="closeModalBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-300">
@@ -240,24 +232,33 @@
 
     <!-- JavaScript for logic and interactions -->
     <script>
-        const precioOriginalInput = document.getElementById('precioOriginal');
-        const porcentajeDescuentoInput = document.getElementById('porcentajeDescuento');
-        const precioDolarInput = document.getElementById('precioDolar'); 
-        const precioFinalDisplay = document.getElementById('precioFinal');
-        const precioFinalDolarDisplay = document.getElementById('precioFinalDolarDisplay');
+        // Get references to all necessary DOM elements
+        const originalPriceInput = document.getElementById('precioOriginal');
+        const discountPercentageInput = document.getElementById('porcentajeDescuento');
+        const dollarPriceInput = document.getElementById('precioDolar'); 
+        const finalPriceDisplay = document.getElementById('precioFinal');
+        const finalDollarPriceDisplay = document.getElementById('precioFinalDolarDisplay');
+        const updateRateBtn = document.getElementById('updateRateBtn');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const pageTitle = document.getElementById('pageTitle');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const mainCalculator = document.getElementById('mainCalculator');
+
 
         const showInstructionsBtn = document.getElementById('showInstructionsBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const instructionsModal = document.getElementById('instructionsModal');
 
-        // Listen for input changes to recalculate prices
-        precioOriginalInput.addEventListener('input', calcular);
-        porcentajeDescuentoInput.addEventListener('input', calcular);
-        precioDolarInput.addEventListener('input', calcular);
+        // Add event listeners for input changes to trigger the calculation
+        originalPriceInput.addEventListener('input', calculate);
+        discountPercentageInput.addEventListener('input', calculate);
+        dollarPriceInput.addEventListener('input', calculate);
+        updateRateBtn.addEventListener('click', updateDollarRateFromHTML);
 
-        // Add event listeners for copying to clipboard
-        precioFinalDisplay.addEventListener('click', () => copyToClipboard('precioFinal'));
-        precioFinalDolarDisplay.addEventListener('click', () => copyToClipboard('precioFinalDolarDisplay'));
+
+        // Add click listeners to the display elements to enable copying
+        finalPriceDisplay.addEventListener('click', () => copyToClipboard('precioFinal'));
+        finalDollarPriceDisplay.addEventListener('click', () => copyToClipboard('precioFinalDolarDisplay'));
 
         // Modal functionality
         showInstructionsBtn.addEventListener('click', () => {
@@ -274,36 +275,103 @@
             }
         });
 
-        // Main calculation function
-        function calcular() {
-            const precioOriginal = parseFloat(precioOriginalInput.value) || 0;
-            const porcentaje = parseFloat(porcentajeDescuentoInput.value) || 0;
-            const precioDolar = parseFloat(precioDolarInput.value) || 0;
+        /**
+         * Hardcoded HTML snippet provided by the user.
+         * In a real-world app, this would be fetched from a webpage.
+         */
+        const htmlSnippet = `
+            <div class="field-content">
+                <div class="row recuadrotsmc">
+                    <div class="col-sm-6 col-xs-6">
+                        <img src="/sites/default/files/dollar-04_2.png" class="icono_bss_blanco1"> 		
+                        <span> USD</span>
+                    </div>
+                    <div class="col-sm-6 col-xs-6 centrado"><strong> 157,72870000 </strong> </div>
+                </div>
+            </div>
+        `;
 
-            const porcentajeValidado = Math.max(0, porcentaje);
+        /**
+         * Extracts the dollar rate from the provided HTML snippet.
+         */
+        function extractDollarRate(htmlString) {
+            try {
+                // Use a regular expression to find the number inside the <strong> tag
+                const regex = /<strong>\s*([\d,.]+)\s*<\/strong>/;
+                const match = htmlString.match(regex);
+                
+                if (match && match[1]) {
+                    // Replace comma with dot for proper floating point parsing
+                    const rate = parseFloat(match[1].replace(',', '.'));
+                    return isNaN(rate) ? null : rate;
+                }
+            } catch (e) {
+                console.error("Error parsing HTML snippet:", e);
+            }
+            return null;
+        }
 
-            const montoDescuento = (precioOriginal * porcentajeValidado) / 100;
+        /**
+         * Updates the dollar rate input with the value from the HTML snippet.
+         */
+        function updateDollarRateFromHTML() {
+            loadingMessage.classList.remove('hidden');
+            updateRateBtn.disabled = true;
 
-            const precioFinal = precioOriginal - montoDescuento;
-
-            let precioFinalDolar = 0;
-            if (precioDolar > 0) {
-                precioFinalDolar = precioFinal / precioDolar;
+            const rate = extractDollarRate(htmlSnippet);
+            
+            if (rate !== null) {
+                dollarPriceInput.value = rate.toFixed(2);
+                calculate();
+            } else {
+                console.log("No se pudo encontrar un precio válido para el dólar en el HTML proporcionado.");
             }
 
-            // Format numbers for display
+            loadingMessage.classList.add('hidden');
+            updateRateBtn.disabled = false;
+        }
+
+        // Main calculation function
+        function calculate() {
+            // Get values from inputs, defaulting to 0 if not a valid number
+            const originalPrice = parseFloat(originalPriceInput.value) || 0;
+            const discountPercentage = parseFloat(discountPercentageInput.value) || 0;
+            const dollarPrice = parseFloat(dollarPriceInput.value) || 0;
+
+            // Ensure the percentage is not negative
+            const validatedPercentage = Math.max(0, discountPercentage);
+
+            // Calculate the discount amount
+            const discountAmount = (originalPrice * validatedPercentage) / 100;
+
+            // Calculate the final price in Bolivars
+            const finalPriceBs = originalPrice - discountAmount;
+
+            // Calculate the final price in dollars, handling the case of zero dollar price
+            let finalPriceUsd = 0;
+            if (dollarPrice > 0) {
+                finalPriceUsd = finalPriceBs / dollarPrice;
+            }
+
+            // Format numbers for display with appropriate decimal places
             const formatOptionsBs = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-            precioFinalDisplay.textContent = precioFinal.toLocaleString('es-ES', formatOptionsBs);
+            finalPriceDisplay.textContent = finalPriceBs.toLocaleString('es-ES', formatOptionsBs);
 
             const formatOptionsUsd = { minimumFractionDigits: 2, maximumFractionDigits: 5 };
-            precioFinalDolarDisplay.textContent = precioFinalDolar.toLocaleString('es-ES', formatOptionsUsd);
+            finalDollarPriceDisplay.textContent = finalPriceUsd.toLocaleString('es-ES', formatOptionsUsd);
         }
 
         // Copy to clipboard function
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
-            const textToCopy = element.textContent;
+            let textToCopy;
+            if (element.tagName === 'DIV') {
+                textToCopy = element.textContent;
+            } else if (element.tagName === 'TEXTAREA') {
+                textToCopy = element.value;
+            }
             
+            // Create a temporary textarea to hold the text to be copied
             const tempInput = document.createElement('textarea');
             tempInput.value = textToCopy;
             document.body.appendChild(tempInput);
@@ -311,8 +379,13 @@
             document.execCommand('copy');
             document.body.removeChild(tempInput);
 
-            // Show confirmation message
-            const copyMsgId = elementId === 'precioFinal' ? 'copyMsgBs' : 'copyMsgUsd';
+            // Show and then hide the confirmation message
+            let copyMsgId;
+            if (elementId === 'precioFinal') {
+                copyMsgId = 'copyMsgBs';
+            } else if (elementId === 'precioFinalDolarDisplay') {
+                copyMsgId = 'copyMsgUsd';
+            }
             const copyMsg = document.getElementById(copyMsgId);
             copyMsg.classList.add('show');
             setTimeout(() => {
@@ -320,7 +393,7 @@
             }, 1500);
         }
 
-        // Particle background logic
+        /* Particle background logic */
         const canvas = document.getElementById('backgroundCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -344,11 +417,11 @@
             }
 
             update() {
-                // Actualizar la posición de la partícula
+                // Update the particle's position
                 this.x += this.velocity.x;
                 this.y += this.velocity.y;
 
-                // Rebotar en los bordes
+                // Bounce off the edges
                 if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
                     this.velocity.x = -this.velocity.x;
                 }
@@ -359,12 +432,12 @@
             }
         }
 
-        // Resize the canvas to fit the window
+        // Resize the canvas to fit the window and recreate particles
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             
-            particles = []; // Recrear las partículas para que se adapten al nuevo tamaño
+            particles = []; 
             const numParticles = 80;
             for (let i = 0; i < numParticles; i++) {
                 const radius = Math.random() * 2 + 1;
@@ -374,7 +447,7 @@
                     x: (Math.random() - 0.5) * 0.5, 
                     y: (Math.random() - 0.5) * 0.5 
                 };
-                const color = '190, 240, 255'; // Color celeste
+                const color = '190, 240, 255'; // Light blue color
                 particles.push(new Particle(x, y, radius, color, velocity));
             }
         }
@@ -382,16 +455,16 @@
         // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            // Dibujar un rectángulo semi-transparente para crear un efecto de rastros
+            // Draw a semi-transparent rectangle to create a trailing effect
             ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Dibujar y actualizar partículas
+            // Draw and update particles
             for (const particle of particles) {
                 particle.update();
             }
 
-            // Conectar partículas cercanas
+            // Connect nearby particles with lines
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const p1 = particles[i];
@@ -412,9 +485,21 @@
 
         // Initialize on window load and resize
         window.addEventListener('load', () => {
+            // After a short delay, fade out the loading screen and show the calculator
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                mainCalculator.style.opacity = '1';
+                
+                // Once the transition is complete, remove the loading screen from the DOM
+                loadingScreen.addEventListener('transitionend', () => {
+                    loadingScreen.remove();
+                }, { once: true });
+                
+            }, 1000);
+            
             resizeCanvas();
             animate();
-            calcular();
+            calculate();
         });
         window.addEventListener('resize', resizeCanvas);
     </script>
