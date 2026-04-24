@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora Precios Kana | Multi-dispositivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #ffffff;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            overscroll-behavior: none;
+        }
+
+        #backgroundCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Suavizar la aparición de modales */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .copy-message {
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            padding: 0.4rem 0.8rem;
+            background-color: #059669;
+            color: white;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .copy-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Estilo para los inputs en móviles para evitar zoom automático en iOS */
+        @media screen and (max-width: 768px) {
+            input[type="number"] {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Pantalla de Carga -->
+    <div id="loadingScreen" class="fixed inset-0 bg-[#0a0a0a] z-[200] flex items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-white text-xs font-medium tracking-widest uppercase opacity-50">Cargando Sistema</p>
+        </div>
+    </div>
+
+    <canvas id="backgroundCanvas"></canvas>
+
+    <!-- Contenedor Principal Adaptativo -->
+    <main id="mainCalculator" class="w-full max-w-[95%] sm:max-w-md lg:max-w-lg mx-auto bg-white rounded-3xl shadow-2xl relative z-10 opacity-0 transition-opacity duration-700 overflow-hidden">
+        
+        <!-- Cabecera -->
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-sm font-bold text-gray-800 uppercase tracking-wider">KANA <span class="text-blue-600">Pro</span></h1>
+            <button id="showInstructionsBtn" class="text-gray-400 hover:text-blue-500 transition-colors p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Formulario -->
+        <div class="p-6 space-y-5">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Precio Original (Bs)</label>
+                    <input type="number" id="precioOriginal" inputmode="decimal" placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Descuento (%)</label>
+                    <input type="number" id="porcentajeDescuento" value="19" inputmode="numeric" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-semibold">
+                </div>
+            </div>
+
+            <div class="relative group">
+                <label class="block text-[10px] font-bold text-blue-500 uppercase mb-1 ml-1">Resultado en Bolívares</label>
+                <div id="precioFinal" class="w-full px-4 py-5 bg-blue-600 text-white font-bold rounded-2xl text-3xl text-center cursor-pointer shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform">
+                    0,00
+                </div>
+                <span id="copyMsgBs" class="copy-message">¡Bs Copiado!</span>
+            </div>
+
+            <div class="pt-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Tasa del Dólar</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="number" id="precioDolar" inputmode="decimal" placeholder="Tasa..." class="flex-1 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all font-mono text-sm">
+                    <button id="openHtmlModal" class="bg-gray-800 hover:bg-black text-white px-4 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PEGAR CÓDIGO
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative group">
+                <label class="block text-[10px] font-bold text-green-600 uppercase mb-1 ml-1">Costo Neto (USD)</label>
+                <div id="precioFinalDolarDisplay" class="w-full px-4 py-5 bg-green-50 text-green-700 font-bold rounded-2xl border-2 border-green-200 text-3xl text-center cursor-pointer active:scale-[0.98] transition-transform font-mono">
+                    0.00000
+                </div>
+                <span id="copyMsgUsd" class="copy-message">¡USD Copiado!</span>
+            </div>
+
+            <div class="text-center pt-2">
+                <a href="https://kana.imk.cecosesola.coop/" target="_blank" class="text-[10px] font-bold text-gray-300 hover:text-blue-500 transition-colors uppercase tracking-widest">
+                    Acceso Directo Cecosesola ↗
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Extracción HTML -->
+    <div id="htmlInputModal" class="modal-overlay">
+        <div class="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl transform transition-all scale-90 opacity-0" id="modalContent">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">Extraer Tasa</h3>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">Pega aquí el código fuente de la página de Cecosesola para actualizar la tasa automáticamente.</p>
+            <textarea id="htmlSnippetInput" rows="5" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-blue-500 outline-none text-[13px] font-mono mb-6" placeholder="Pega el HTML aquí..."></textarea>
+            <div class="flex gap-2">
+                <button id="closeHtmlModal" class="flex-1 py-3 text-gray-400 font-bold text-xs uppercase tracking-wider">Cerrar</button>
+                <button id="processHtmlBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-100">Procesar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Info -->
+    <div id="instructionsModal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-xs shadow-2xl">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">Guía Rápida</h2>
+            <div class="space-y-4">
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                    <p class="text-xs text-gray-500 leading-normal">Ingresa el precio del producto y el % de descuento (por defecto 19%).</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                    <p class="text-xs text-gray-500 leading-normal">Pulsa "PEGAR CÓDIGO" y pega el HTML de la web para obtener la tasa real.</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                    <p class="text-xs text-gray-500 leading-normal">Toca los cuadros de resultado para copiarlos al portapapeles.</p>
+                </div>
+            </div>
+            <button id="closeInstructionsBtn" class="w-full mt-8 py-3 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        // Lógica de cálculo
+        const getVal = id => parseFloat(document.getElementById(id).value) || 0;
+        const setTxt = (id, val) => document.getElementById(id).textContent = val;
+
+        function calculate() {
+            const price = getVal('precioOriginal');
+            const discount = getVal('porcentajeDescuento');
+            const rate = getVal('precioDolar');
+
+            const finalBs = price * (1 - discount / 100);
+            const finalUsd = rate > 0 ? finalBs / rate : 0;
+
+            setTxt('precioFinal', finalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            setTxt('precioFinalDolarDisplay', finalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
+        }
+
+        ['precioOriginal', 'porcentajeDescuento', 'precioDolar'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculate);
+        });
+
+        // Modales
+        const modalActions = (modalId, triggerId, closeId, isHtml = false) => {
+            const modal = document.getElementById(modalId);
+            const trigger = document.getElementById(triggerId);
+            const close = document.getElementById(closeId);
+            const content = modal.querySelector('div');
+
+            trigger.onclick = () => {
+                modal.classList.add('active');
+                if (content) {
+                    setTimeout(() => {
+                        content.style.opacity = '1';
+                        content.style.transform = 'scale(1)';
+                    }, 50);
+                }
+            };
+
+            const closeFn = () => {
+                if (content) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'scale(0.9)';
+                }
+                setTimeout(() => modal.classList.remove('active'), 200);
+            };
+
+            close.onclick = closeFn;
+            modal.onclick = (e) => { if (e.target === modal) closeFn(); };
+            return closeFn;
+        };
+
+        const closeHtml = modalActions('htmlInputModal', 'openHtmlModal', 'closeHtmlModal');
+        modalActions('instructionsModal', 'showInstructionsBtn', 'closeInstructionsBtn');
+
+        // Procesar HTML
+        document.getElementById('processHtmlBtn').onclick = () => {
+            const snippet = document.getElementById('htmlSnippetInput').value;
+            const regex = /<strong>\s*([\d,.]+)\s*<\/strong>/i;
+            const match = snippet.match(regex);
+
+            if (match && match[1]) {
+                const num = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+                if (!isNaN(num)) {
+                    document.getElementById('precioDolar').value = num;
+                    calculate();
+                    closeHtml();
+                    return;
+                }
+            }
+            alert("No se detectó un valor válido en el código pegado.");
+        };
+
+        // Copiar
+        function copy(id, msgId) {
+            const text = document.getElementById(id).textContent.trim();
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+
+            const msg = document.getElementById(msgId);
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 1500);
+        }
+
+        document.getElementById('precioFinal').onclick = () => copy('precioFinal', 'copyMsgBs');
+        document.getElementById('precioFinalDolarDisplay').onclick = () => copy('precioFinalDolarDisplay', 'copyMsgUsd');
+
+        // Canvas de fondo (Responsivo)
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function initParticles() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const count = window.innerWidth < 768 ? 40 : 80;
+            particles = Array.from({ length: count }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                r: Math.random() * 1.5 + 0.5
+            }));
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', initParticles);
+
+        // Inicio
+        window.onload = () => {
+            initParticles();
+            animate();
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').remove();
+                    document.getElementById('mainCalculator').style.opacity = '1';
+                }, 500);
+            }, 600);
+        };
+    </script>
+</body>
+</html>
