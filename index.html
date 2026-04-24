@@ -2,42 +2,45 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Precios Kana</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora Precios Kana | Multi-dispositivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom Styles -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #ffffff;
+        }
 
-        body {
+        body { 
             font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            overscroll-behavior: none;
         }
 
-        /* Styles for the particle background canvas */
         #backgroundCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-        }
-
-        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+
+        /* Suavizar la aparición de modales */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.75);
             display: flex;
             justify-content: center;
             align-items: center;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
+            padding: 1rem;
         }
 
         .modal-overlay.active {
@@ -45,464 +48,291 @@
             visibility: visible;
         }
 
-        .modal-content {
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-        
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
-        }
-
-        /* Style for the copy message */
         .copy-message {
             position: absolute;
-            bottom: 100%;
+            bottom: 110%;
             left: 50%;
-            transform: translateX(-50%) translateY(-10px);
-            padding: 0.5rem 1rem;
-            background-color: #16a34a;
+            transform: translateX(-50%) translateY(10px);
+            padding: 0.4rem 0.8rem;
+            background-color: #059669;
             color: white;
             border-radius: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 600;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .copy-message.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* Estilo para los inputs en móviles para evitar zoom automático en iOS */
+        @media screen and (max-width: 768px) {
+            input[type="number"] {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
-<body class="bg-[#0a0a0a] flex items-center justify-center min-h-screen p-4 overflow-hidden">
-    <!-- Loading Screen with Black Circle -->
-    <div id="loadingScreen" class="fixed inset-0 bg-[#0a0a0a] z-[200] flex items-center justify-center transition-opacity duration-700">
-        <div class="w-40 h-40 rounded-full bg-black flex items-center justify-center animate-pulse">
-            <p class="text-white text-xl font-bold">Espere un momento</p>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Pantalla de Carga -->
+    <div id="loadingScreen" class="fixed inset-0 bg-[#0a0a0a] z-[200] flex items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-white text-xs font-medium tracking-widest uppercase opacity-50">Cargando Sistema</p>
         </div>
     </div>
 
-    <!-- Particle Background Canvas -->
     <canvas id="backgroundCanvas"></canvas>
 
-    <!-- Main Calculator Card -->
-    <div id="mainCalculator" class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl max-w-lg w-full transform transition-all duration-300 hover:shadow-2xl relative z-10 opacity-0">
-        <!-- Info Button -->
-        <button id="showInstructionsBtn" class="absolute top-4 right-4 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-.897.557l-1 2A1 1 0 009 8h2a1 1 0 00.897-1.443l-1-2A1 1 0 0010 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-            </svg>
-        </button>
+    <!-- Contenedor Principal Adaptativo -->
+    <main id="mainCalculator" class="w-full max-w-[95%] sm:max-w-md lg:max-w-lg mx-auto bg-white rounded-3xl shadow-2xl relative z-10 opacity-0 transition-opacity duration-700 overflow-hidden">
         
-        <h1 id="pageTitle" class="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-8">
-            Calculadora Precios KANA cecosesola
-        </h1>
+        <!-- Cabecera -->
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-sm font-bold text-gray-800 uppercase tracking-wider">KANA <span class="text-blue-600">Pro</span></h1>
+            <button id="showInstructionsBtn" class="text-gray-400 hover:text-blue-500 transition-colors p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
 
-        <!-- Input and Output Fields -->
-        <div class="space-y-6">
+        <!-- Formulario -->
+        <div class="p-6 space-y-5">
             
-            <!-- Original Price Input -->
-            <div class="flex flex-col">
-                <label for="precioOriginal" class="text-xs font-medium text-gray-700 mb-2">
-                    Precio Original
-                </label>
-                <input
-                    type="number"
-                    id="precioOriginal"
-                    placeholder="Ej. 100"
-                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Precio Original (Bs)</label>
+                    <input type="number" id="precioOriginal" inputmode="decimal" placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Descuento (%)</label>
+                    <input type="number" id="porcentajeDescuento" value="19" inputmode="numeric" class="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-semibold">
+                </div>
             </div>
 
-            <!-- Discount Percentage Input -->
-            <div class="flex flex-col">
-                <label for="porcentajeDescuento" class="text-xs font-medium text-gray-700 mb-2">
-                    Porcentaje de Descuento (%)
-                </label>
-                <input
-                    type="number"
-                    id="porcentajeDescuento"
-                    placeholder="Ej. 19"
-                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                />
-            </div>
-            
-            <!-- Final Price Display (Bolívares) -->
-            <div class="flex flex-col relative">
-                <label for="precioFinal" class="text-xs font-medium text-gray-700 mb-2">
-                    Precio Final (Bs)
-                </label>
-                <div id="precioFinal"
-                    class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
-                >
+            <div class="relative group">
+                <label class="block text-[10px] font-bold text-blue-500 uppercase mb-1 ml-1">Resultado en Bolívares</label>
+                <div id="precioFinal" class="w-full px-4 py-5 bg-blue-600 text-white font-bold rounded-2xl text-3xl text-center cursor-pointer shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform">
                     0,00
                 </div>
-                <!-- Copy Button for Final Price -->
-                <button onclick="copyToClipboard('precioFinal')" class="absolute right-4 top-1/2 mt-2 transform -translate-y-1/2 text-gray-500 hover:text-blue-500 transition duration-200" title="Copiar al portapapeles">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 013 3v11a3 3 0 01-3 3H6a3 3 0 01-3-3V5a3 3 0 013-3h2zm0 1a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" />
-                    </svg>
-                </button>
-                <span id="copyMsgBs" class="copy-message">Copiado!</span>
+                <span id="copyMsgBs" class="copy-message">¡Bs Copiado!</span>
             </div>
 
-            <!-- Dollar Price Input -->
-            <div class="flex flex-col">
-                <label for="precioDolar" class="text-xs font-medium text-gray-700 mb-2">
-                    Precio del Dólar
-                </label>
-                <input
-                    type="number"
-                    id="precioDolar"
-                    placeholder="Ej. 1000"
-                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                />
-                <div class="flex justify-center mt-2">
-                    <!-- New Button to update the dollar rate -->
-                    <button id="updateRateBtn" class="py-2 px-4 w-full text-center text-white font-semibold rounded-lg shadow-md bg-green-500 hover:bg-green-600 transition duration-300 transform hover:scale-105">
-                        Actualizar Tasa con HTML
+            <div class="pt-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Tasa del Dólar</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="number" id="precioDolar" inputmode="decimal" placeholder="Tasa..." class="flex-1 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all font-mono text-sm">
+                    <button id="openHtmlModal" class="bg-gray-800 hover:bg-black text-white px-4 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PEGAR CÓDIGO
                     </button>
                 </div>
-                <!-- Loading message -->
-                <p id="loadingMessage" class="hidden text-xs text-center text-gray-500 mt-2">
-                    Analizando HTML...
-                </p>
             </div>
 
-            <!-- Final Price Display (Dollars) -->
-            <div class="flex flex-col relative">
-                <label for="precioFinalDolarDisplay" class="text-xs font-medium text-gray-700 mb-2">
-                    COSTO
-                </label>
-                <div id="precioFinalDolarDisplay"
-                    class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg border-2 border-gray-300 text-lg text-center cursor-pointer select-none"
-                >
-                    0,00000
+            <div class="relative group">
+                <label class="block text-[10px] font-bold text-green-600 uppercase mb-1 ml-1">Costo Neto (USD)</label>
+                <div id="precioFinalDolarDisplay" class="w-full px-4 py-5 bg-green-50 text-green-700 font-bold rounded-2xl border-2 border-green-200 text-3xl text-center cursor-pointer active:scale-[0.98] transition-transform font-mono">
+                    0.00000
                 </div>
-                <!-- Copy Button for Dollar Price -->
-                <button onclick="copyToClipboard('precioFinalDolarDisplay')" class="absolute right-4 top-1/2 mt-2 transform -translate-y-1/2 text-gray-500 hover:text-blue-500 transition duration-200" title="Copiar al portapapeles">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 013 3v11a3 3 0 01-3 3H6a3 3 0 01-3-3V5a3 3 0 013-3h2zm0 1a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" />
-                    </svg>
-                </button>
-                <span id="copyMsgUsd" class="copy-message">Copiado!</span>
+                <span id="copyMsgUsd" class="copy-message">¡USD Copiado!</span>
             </div>
 
-            <!-- KANA PRECIOS Link Button -->
-            <div class="flex justify-center mt-6">
-                <a 
-                    href="https://kana.imk.cecosesola.coop/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    class="w-full py-3 px-6 text-center text-white font-bold rounded-lg shadow-lg bg-gray-800 hover:bg-gray-900 transition duration-300 transform hover:scale-105 flex items-center justify-center"
-                >
-                    <!-- Icon for the KANA PRECIOS button -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 14a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd" />
-                    </svg>
-                    KANA PRECIOS
+            <div class="text-center pt-2">
+                <a href="https://kana.imk.cecosesola.coop/" target="_blank" class="text-[10px] font-bold text-gray-300 hover:text-blue-500 transition-colors uppercase tracking-widest">
+                    Acceso Directo Cecosesola ↗
                 </a>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Modal Overlay and Content -->
-    <div id="instructionsModal" class="modal-overlay">
-        <div class="modal-content bg-white p-8 rounded-xl max-w-sm w-11/12 shadow-2xl">
-            <h2 class="text-xl font-bold mb-4">Instrucciones de uso</h2>
-            <ol class="list-decimal list-inside text-sm text-gray-700 space-y-2">
-                <li>Ingresa el **Precio Original** del producto en bolívares.</li>
-                <li>Ingresa el **Porcentaje de Descuento (%)**.</li>
-                <li>Haz clic en **"Actualizar Tasa con HTML"** para leer el precio del dólar.</li>
-                <li>El **Precio Final** en bolívares y dólares se calculará automáticamente.</li>
-                <li>Usa los íconos de copia para copiar el resultado al portapapeles.</li>
-            </ol>
-            <div class="flex justify-end mt-6">
-                <button id="closeModalBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-300">
-                    Cerrar
-                </button>
+    <!-- Modal Extracción HTML -->
+    <div id="htmlInputModal" class="modal-overlay">
+        <div class="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl transform transition-all scale-90 opacity-0" id="modalContent">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">Extraer Tasa</h3>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">Pega aquí el código fuente de la página de Cecosesola para actualizar la tasa automáticamente.</p>
+            <textarea id="htmlSnippetInput" rows="5" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-blue-500 outline-none text-[13px] font-mono mb-6" placeholder="Pega el HTML aquí..."></textarea>
+            <div class="flex gap-2">
+                <button id="closeHtmlModal" class="flex-1 py-3 text-gray-400 font-bold text-xs uppercase tracking-wider">Cerrar</button>
+                <button id="processHtmlBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-100">Procesar</button>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript for logic and interactions -->
-    <script>
-        // Get references to all necessary DOM elements
-        const originalPriceInput = document.getElementById('precioOriginal');
-        const discountPercentageInput = document.getElementById('porcentajeDescuento');
-        const dollarPriceInput = document.getElementById('precioDolar'); 
-        const finalPriceDisplay = document.getElementById('precioFinal');
-        const finalDollarPriceDisplay = document.getElementById('precioFinalDolarDisplay');
-        const updateRateBtn = document.getElementById('updateRateBtn');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const pageTitle = document.getElementById('pageTitle');
-        const loadingScreen = document.getElementById('loadingScreen');
-        const mainCalculator = document.getElementById('mainCalculator');
-
-
-        const showInstructionsBtn = document.getElementById('showInstructionsBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const instructionsModal = document.getElementById('instructionsModal');
-
-        // Add event listeners for input changes to trigger the calculation
-        originalPriceInput.addEventListener('input', calculate);
-        discountPercentageInput.addEventListener('input', calculate);
-        dollarPriceInput.addEventListener('input', calculate);
-        updateRateBtn.addEventListener('click', updateDollarRateFromHTML);
-
-
-        // Add click listeners to the display elements to enable copying
-        finalPriceDisplay.addEventListener('click', () => copyToClipboard('precioFinal'));
-        finalDollarPriceDisplay.addEventListener('click', () => copyToClipboard('precioFinalDolarDisplay'));
-
-        // Modal functionality
-        showInstructionsBtn.addEventListener('click', () => {
-            instructionsModal.classList.add('active');
-        });
-
-        closeModalBtn.addEventListener('click', () => {
-            instructionsModal.classList.remove('active');
-        });
-
-        instructionsModal.addEventListener('click', (e) => {
-            if (e.target === instructionsModal) {
-                instructionsModal.classList.remove('active');
-            }
-        });
-
-        /**
-         * Hardcoded HTML snippet provided by the user.
-         * In a real-world app, this would be fetched from a webpage.
-         */
-        const htmlSnippet = `
-            <div class="field-content">
-                <div class="row recuadrotsmc">
-                    <div class="col-sm-6 col-xs-6">
-                        <img src="/sites/default/files/dollar-04_2.png" class="icono_bss_blanco1"> 		
-                        <span> USD</span>
-                    </div>
-                    <div class="col-sm-6 col-xs-6 centrado"><strong> 157,72870000 </strong> </div>
+    <!-- Modal Info -->
+    <div id="instructionsModal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-xs shadow-2xl">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">Guía Rápida</h2>
+            <div class="space-y-4">
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                    <p class="text-xs text-gray-500 leading-normal">Ingresa el precio del producto y el % de descuento (por defecto 19%).</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                    <p class="text-xs text-gray-500 leading-normal">Pulsa "PEGAR CÓDIGO" y pega el HTML de la web para obtener la tasa real.</p>
+                </div>
+                <div class="flex gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                    <p class="text-xs text-gray-500 leading-normal">Toca los cuadros de resultado para copiarlos al portapapeles.</p>
                 </div>
             </div>
-        `;
+            <button id="closeInstructionsBtn" class="w-full mt-8 py-3 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest">Entendido</button>
+        </div>
+    </div>
 
-        /**
-         * Extracts the dollar rate from the provided HTML snippet.
-         */
-        function extractDollarRate(htmlString) {
-            try {
-                // Use a regular expression to find the number inside the <strong> tag
-                const regex = /<strong>\s*([\d,.]+)\s*<\/strong>/;
-                const match = htmlString.match(regex);
-                
-                if (match && match[1]) {
-                    // Replace comma with dot for proper floating point parsing
-                    const rate = parseFloat(match[1].replace(',', '.'));
-                    return isNaN(rate) ? null : rate;
-                }
-            } catch (e) {
-                console.error("Error parsing HTML snippet:", e);
-            }
-            return null;
-        }
+    <script>
+        // Lógica de cálculo
+        const getVal = id => parseFloat(document.getElementById(id).value) || 0;
+        const setTxt = (id, val) => document.getElementById(id).textContent = val;
 
-        /**
-         * Updates the dollar rate input with the value from the HTML snippet.
-         */
-        function updateDollarRateFromHTML() {
-            loadingMessage.classList.remove('hidden');
-            updateRateBtn.disabled = true;
-
-            const rate = extractDollarRate(htmlSnippet);
-            
-            if (rate !== null) {
-                dollarPriceInput.value = rate.toFixed(2);
-                calculate();
-            } else {
-                console.log("No se pudo encontrar un precio válido para el dólar en el HTML proporcionado.");
-            }
-
-            loadingMessage.classList.add('hidden');
-            updateRateBtn.disabled = false;
-        }
-
-        // Main calculation function
         function calculate() {
-            // Get values from inputs, defaulting to 0 if not a valid number
-            const originalPrice = parseFloat(originalPriceInput.value) || 0;
-            const discountPercentage = parseFloat(discountPercentageInput.value) || 0;
-            const dollarPrice = parseFloat(dollarPriceInput.value) || 0;
+            const price = getVal('precioOriginal');
+            const discount = getVal('porcentajeDescuento');
+            const rate = getVal('precioDolar');
 
-            // Ensure the percentage is not negative
-            const validatedPercentage = Math.max(0, discountPercentage);
+            const finalBs = price * (1 - discount / 100);
+            const finalUsd = rate > 0 ? finalBs / rate : 0;
 
-            // Calculate the discount amount
-            const discountAmount = (originalPrice * validatedPercentage) / 100;
-
-            // Calculate the final price in Bolivars
-            const finalPriceBs = originalPrice - discountAmount;
-
-            // Calculate the final price in dollars, handling the case of zero dollar price
-            let finalPriceUsd = 0;
-            if (dollarPrice > 0) {
-                finalPriceUsd = finalPriceBs / dollarPrice;
-            }
-
-            // Format numbers for display with appropriate decimal places
-            const formatOptionsBs = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-            finalPriceDisplay.textContent = finalPriceBs.toLocaleString('es-ES', formatOptionsBs);
-
-            const formatOptionsUsd = { minimumFractionDigits: 2, maximumFractionDigits: 5 };
-            finalDollarPriceDisplay.textContent = finalPriceUsd.toLocaleString('es-ES', formatOptionsUsd);
+            setTxt('precioFinal', finalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            setTxt('precioFinalDolarDisplay', finalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
         }
 
-        // Copy to clipboard function
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            let textToCopy;
-            if (element.tagName === 'DIV') {
-                textToCopy = element.textContent;
-            } else if (element.tagName === 'TEXTAREA') {
-                textToCopy = element.value;
+        ['precioOriginal', 'porcentajeDescuento', 'precioDolar'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculate);
+        });
+
+        // Modales
+        const modalActions = (modalId, triggerId, closeId, isHtml = false) => {
+            const modal = document.getElementById(modalId);
+            const trigger = document.getElementById(triggerId);
+            const close = document.getElementById(closeId);
+            const content = modal.querySelector('div');
+
+            trigger.onclick = () => {
+                modal.classList.add('active');
+                if (content) {
+                    setTimeout(() => {
+                        content.style.opacity = '1';
+                        content.style.transform = 'scale(1)';
+                    }, 50);
+                }
+            };
+
+            const closeFn = () => {
+                if (content) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'scale(0.9)';
+                }
+                setTimeout(() => modal.classList.remove('active'), 200);
+            };
+
+            close.onclick = closeFn;
+            modal.onclick = (e) => { if (e.target === modal) closeFn(); };
+            return closeFn;
+        };
+
+        const closeHtml = modalActions('htmlInputModal', 'openHtmlModal', 'closeHtmlModal');
+        modalActions('instructionsModal', 'showInstructionsBtn', 'closeInstructionsBtn');
+
+        // Procesar HTML
+        document.getElementById('processHtmlBtn').onclick = () => {
+            const snippet = document.getElementById('htmlSnippetInput').value;
+            const regex = /<strong>\s*([\d,.]+)\s*<\/strong>/i;
+            const match = snippet.match(regex);
+
+            if (match && match[1]) {
+                const num = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+                if (!isNaN(num)) {
+                    document.getElementById('precioDolar').value = num;
+                    calculate();
+                    closeHtml();
+                    return;
+                }
             }
-            
-            // Create a temporary textarea to hold the text to be copied
-            const tempInput = document.createElement('textarea');
-            tempInput.value = textToCopy;
-            document.body.appendChild(tempInput);
-            tempInput.select();
+            alert("No se detectó un valor válido en el código pegado.");
+        };
+
+        // Copiar
+        function copy(id, msgId) {
+            const text = document.getElementById(id).textContent.trim();
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
             document.execCommand('copy');
-            document.body.removeChild(tempInput);
+            document.body.removeChild(temp);
 
-            // Show and then hide the confirmation message
-            let copyMsgId;
-            if (elementId === 'precioFinal') {
-                copyMsgId = 'copyMsgBs';
-            } else if (elementId === 'precioFinalDolarDisplay') {
-                copyMsgId = 'copyMsgUsd';
-            }
-            const copyMsg = document.getElementById(copyMsgId);
-            copyMsg.classList.add('show');
-            setTimeout(() => {
-                copyMsg.classList.remove('show');
-            }, 1500);
+            const msg = document.getElementById(msgId);
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 1500);
         }
 
-        /* Particle background logic */
+        document.getElementById('precioFinal').onclick = () => copy('precioFinal', 'copyMsgBs');
+        document.getElementById('precioFinalDolarDisplay').onclick = () => copy('precioFinalDolarDisplay', 'copyMsgUsd');
+
+        // Canvas de fondo (Responsivo)
         const canvas = document.getElementById('backgroundCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
 
-        // Particle Class
-        class Particle {
-            constructor(x, y, radius, color, velocity) {
-                this.x = x;
-                this.y = y;
-                this.radius = radius;
-                this.color = color;
-                this.velocity = velocity;
-                this.opacity = 1;
-            }
-            
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
-                ctx.fill();
-            }
-
-            update() {
-                // Update the particle's position
-                this.x += this.velocity.x;
-                this.y += this.velocity.y;
-
-                // Bounce off the edges
-                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-                    this.velocity.x = -this.velocity.x;
-                }
-                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-                    this.velocity.y = -this.velocity.y;
-                }
-                this.draw();
-            }
-        }
-
-        // Resize the canvas to fit the window and recreate particles
-        function resizeCanvas() {
+        function initParticles() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            
-            particles = []; 
-            const numParticles = 80;
-            for (let i = 0; i < numParticles; i++) {
-                const radius = Math.random() * 2 + 1;
-                const x = Math.random() * (canvas.width - radius * 2) + radius;
-                const y = Math.random() * (canvas.height - radius * 2) + radius;
-                const velocity = { 
-                    x: (Math.random() - 0.5) * 0.5, 
-                    y: (Math.random() - 0.5) * 0.5 
-                };
-                const color = '190, 240, 255'; // Light blue color
-                particles.push(new Particle(x, y, radius, color, velocity));
-            }
+            const count = window.innerWidth < 768 ? 40 : 80;
+            particles = Array.from({ length: count }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                r: Math.random() * 1.5 + 0.5
+            }));
         }
 
-        // Animation Loop
         function animate() {
-            requestAnimationFrame(animate);
-            // Draw a semi-transparent rectangle to create a trailing effect
-            ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw and update particles
-            for (const particle of particles) {
-                particle.update();
-            }
-
-            // Connect nearby particles with lines
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i; j < particles.length; j++) {
-                    const p1 = particles[i];
-                    const p2 = particles[j];
-                    const distance = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-
-                    if (distance < 100) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(190, 240, 255, ${1 - distance / 100})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                }
-            }
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.fill();
+            });
+            requestAnimationFrame(animate);
         }
 
-        // Initialize on window load and resize
-        window.addEventListener('load', () => {
-            // After a short delay, fade out the loading screen and show the calculator
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                mainCalculator.style.opacity = '1';
-                
-                // Once the transition is complete, remove the loading screen from the DOM
-                loadingScreen.addEventListener('transitionend', () => {
-                    loadingScreen.remove();
-                }, { once: true });
-                
-            }, 1000);
-            
-            resizeCanvas();
+        window.addEventListener('resize', initParticles);
+
+        // Inicio
+        window.onload = () => {
+            initParticles();
             animate();
-            calculate();
-        });
-        window.addEventListener('resize', resizeCanvas);
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').remove();
+                    document.getElementById('mainCalculator').style.opacity = '1';
+                }, 500);
+            }, 600);
+        };
     </script>
 </body>
 </html>
-
